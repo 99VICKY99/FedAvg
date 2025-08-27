@@ -27,7 +27,9 @@ class FedAvg:
             root=self.args.data_root,
             n_clients=self.args.n_clients,
             n_shards=self.args.n_shards,
-            non_iid=self.args.non_iid,
+            partition_mode=getattr(self.args, 'partition_mode', 'iid'),
+            dirichlet_alpha=getattr(self.args, 'dirichlet_alpha', 0.1),
+            non_iid=getattr(self.args, 'non_iid', None),  # Backward compatibility
         )
 
         if self.args.model_name == "mlp":
@@ -44,14 +46,17 @@ class FedAvg:
         self.reached_target_at = None  # type: int
 
     def _get_data(
-        self, root: str, n_clients: int, n_shards: int, non_iid: int
+        self, root: str, n_clients: int, n_shards: int, 
+        partition_mode: str = 'iid', dirichlet_alpha: float = 0.1, non_iid: int = None
     ) -> Tuple[DataLoader, DataLoader]:
         """
         Args:
             root (str): path to the dataset.
             n_clients (int): number of clients.
             n_shards (int): number of shards.
-            non_iid (int): 0: IID, 1: Non-IID
+            partition_mode (str): 'iid', 'shard', or 'dirichlet'.
+            dirichlet_alpha (float): Alpha parameter for Dirichlet distribution.
+            non_iid (int): Deprecated. Use partition_mode instead.
 
         Returns:
             Tuple[DataLoader, DataLoader]: train_loader, test_loader
@@ -60,7 +65,12 @@ class FedAvg:
         test_set = MNISTDataset(root=root, train=False)
 
         sampler = FederatedSampler(
-            train_set, non_iid=non_iid, n_clients=n_clients, n_shards=n_shards
+            dataset=train_set,
+            partition_mode=partition_mode,
+            n_clients=n_clients,
+            n_shards=n_shards,
+            dirichlet_alpha=dirichlet_alpha,
+            non_iid=non_iid  # For backward compatibility
         )
 
         train_loader = DataLoader(train_set, batch_size=128, sampler=sampler)

@@ -12,6 +12,8 @@ class Logger:
         if args.wandb:
             wandb.init(project=args.wandb_project, name=args.exp_name, config=args)
             self.wandb = wandb
+        else:
+            self.wandb = None
 
     def log(self, logs: Dict[str, Any]) -> None:
         if self.wandb:
@@ -35,7 +37,13 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data_root", type=str, default="../datasets/")
     parser.add_argument("--model_name", type=str, default="cnn")
 
-    parser.add_argument("--non_iid", type=int, default=1)  # 0: IID, 1: Non-IID
+    # Data partitioning arguments
+    parser.add_argument("--partition_mode", type=str, default="iid", 
+                       choices=["iid", "shard", "dirichlet"],
+                       help="Data partitioning method: 'iid', 'shard', or 'dirichlet'")
+    parser.add_argument("--dirichlet_alpha", type=float, default=0.1,
+                       help="Alpha parameter for Dirichlet distribution (lower = more non-IID)")
+    parser.add_argument("--non_iid", type=int, default=1)  # Kept for backward compatibility
     parser.add_argument("--n_clients", type=int, default=100)
     parser.add_argument("--n_shards", type=int, default=200)
     parser.add_argument("--frac", type=float, default=0.1)
@@ -51,7 +59,7 @@ def arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--device", type=int, default=0)
 
-    parser.add_argument("--wandb", type=bool, default=False)
+    parser.add_argument("--wandb", action='store_true', help="Enable wandb logging")
     parser.add_argument("--wandb_project", type=str, default="FedAvg")
     parser.add_argument("--exp_name", type=str, default="exp")
 
